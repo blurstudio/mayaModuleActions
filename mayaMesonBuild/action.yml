@@ -1,0 +1,58 @@
+name: Maya Meson Build
+
+inputs:
+  maya:
+    description: 'The numerical major version of maya to build the plugin for'
+    required: true
+    type: number
+  update:
+    description: 'The update number of the maya version'
+    required: true
+    type: number
+  build-type:
+    description: 'The Meson build type from "release", "debugoptimized", "debug"'
+    default: "debugoptimized"
+    type: string
+  devkit-path:
+    description: 'The absolute path to the maya devkit'
+    required: true
+    type: string
+  setup-args:
+    description: 'Any extra arguments passed to the meson setup command'
+    default: ''
+    type: string
+
+runs:
+  using: composite
+
+  steps:
+    - name: Install OpenGL libraries Linux
+      if: ${{ runner.os == 'Linux' }}
+      shell: bash
+      run: sudo apt install libglu1-mesa-dev
+
+    - name : Install ninja
+      uses: seanmiddleditch/gha-setup-ninja@v5
+
+    - name : Install Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+
+    - name : Install Meson
+      shell: bash
+      run: pip install meson
+
+    - name: Setup Meson python
+      shell: bash
+      env:
+        BUILD_PATH: build
+        MAYA_VER: ${{ inputs.maya }}
+        BUILD_TYPE: ${{ inputs.build-type }}
+        DK_PATH: ${{ inputs.devkit-path }}
+        SETUP_ARGS: ${{ inputs.setup-args }}
+      run: python "${{ github.action_path }}/mayaMesonBuild.py"
+
+    - name: Compile Meson
+      shell: bash
+      run: meson compile -C build

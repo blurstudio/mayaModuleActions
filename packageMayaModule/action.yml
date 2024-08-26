@@ -1,0 +1,71 @@
+name: "Package Maya Module"
+description: "Package a maya module"
+
+inputs:
+  module-name:
+    description: "The name of the module to build"
+    required: true
+    type: string
+  folder-list:
+    description: "A whitespace separated list of folder names to copy into the module"
+    required: false
+    default: scripts icons
+  version:
+    description: "The version to build into the mod file"
+    default: "icons"
+    type: string
+  py-limited-api:
+    description: "Whether the python modules were compiled with the limited api, and only compiled once per OS"
+    default: false
+    required: false
+
+runs:
+  using: "composite"
+  steps:
+    - name: Download artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: modules/${{ inputs.module-name }}
+
+    - name: Copy script data
+      shell: bash
+      env:
+        MOD_NAME: ${{ inputs.module-name }}
+        FOLDERS: ${{ inputs.folder-list }}
+      run: |
+        for FLD in $FOLDERS
+        do
+          if [ -d "./${FLD}" ]; then
+            cp -r ./${FLD} modules/${MOD_NAME}
+            echo "topline=true" >> $GITHUB_ENV
+          fi
+        done
+
+    - name: Install Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'  
+
+    - name: Build the Maya Modfile
+      shell: bash
+      env:
+        OUTPATH: modules/${{ inputs.module-name }}.mod
+        MODNAME: ${{ inputs.module-name }}
+        MODVERSION: ${{ inputs.version }}
+        MODPATH: modules/${{ inputs.module-name }}
+        LIMITED: ${{ env.limited }}
+        TOP: ${{ env.topline }}
+      run: python "${{ github.action_path }}/buildmodfile.py" --github
+
+    - name: Zip Distribution
+      shell: bash
+      env:
+        REL_VER: ${{ inputs.version }}
+        MOD_NAME: ${{ inputs.module-name }}
+      run: zip -r ${MOD_NAME}-${REL_VER}.zip modules/
+
+    - name: Upload Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ inputs.module-name }}-module
+        path: ${{ inputs.module-name }}-${{ inputs.version }}.zip

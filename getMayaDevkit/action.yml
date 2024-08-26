@@ -1,0 +1,125 @@
+name: "Setup Maya Compile"
+description: |
+  Setup the environment to let Maya compile.
+  This includes getting the devkit, and installing any missing libraries
+  We also return some os-dependent maya information (ie, the plugin extension)
+
+inputs:
+  maya:
+    description: "The numerical major version of maya to build the plugin for"
+    required: true
+    type: number
+  update:
+    description: "The update number of the maya version"
+    required: true
+    type: number
+  cache:
+    description: "Whether to cache the devkit to this repo... This will take up most of the 10Gig limit"
+    default: true
+    type: boolean
+
+outputs:
+  devkit-extract:
+    description: "The absolute path to folder where we extract the devkit"
+    value: ${{ steps.dk-output.outputs.dk-extract }}
+  devkit-path:
+    description: "The absolute path to the extracted devkit"
+    value: ${{ steps.dk-output.outputs.dk-path }}
+  devkit-zip:
+    description: "The absolute path to the devkit archive"
+    value: ${{ steps.dk-output.outputs.dk-zip }}
+  plugin-ext:
+    description: "The maya plugin extension for this OS"
+    value: ${{ steps.dk-output.outputs.plugin-ext }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Get Variables - Windows
+      if: ${{ runner.os == 'Windows' }}
+      shell: bash
+      run: |
+        echo "os_name=Windows" >> $GITHUB_ENV
+        echo "ext=mll" >> $GITHUB_ENV
+        echo "zip=zip" >> $GITHUB_ENV
+
+    - name: Get Variables - Linux
+      if: ${{ runner.os == 'Linux' }}
+      shell: bash
+      run: |
+        echo "os_name=Linux" >> $GITHUB_ENV
+        echo "ext=so" >> $GITHUB_ENV
+        echo "zip=tgz" >> $GITHUB_ENV
+
+    - name: Get Variables - Mac
+      if: ${{ runner.os == 'macOS' }}
+      shell: bash
+      run: |
+        echo "os_name=Mac" >> $GITHUB_ENV
+        echo "ext=bundle" >> $GITHUB_ENV
+        echo "zip=dmg" >> $GITHUB_ENV
+
+    - name: Build Devkit URL
+      shell: bash
+      env:
+        MAYA_VER: ${{ inputs.maya }}
+        UPD: ${{ inputs.update }}
+      run: |
+        DEVKIT_BASE=https://autodesk-adn-transfer.s3-us-west-2.amazonaws.com/ADN+Extranet/M%26E/Maya
+        echo "DEVKIT_URL=${DEVKIT_BASE}/devkit+${MAYA_VER}/Autodesk_Maya_${MAYA_VER}_${UPD}_Update_DEVKIT_${{ env.os_name }}.${{ env.zip }}" >> $GITHUB_ENV
+
+    - name: Install OpenGL libraries on Linux
+      if: ${{ runner.os == 'Linux' }}
+      shell: bash
+      run: sudo apt install libglu1-mesa-dev
+
+    - name : Install ninja
+      uses: seanmiddleditch/gha-setup-ninja@v5
+
+    - name: Set output
+      id: dk-output
+      shell: bash
+      run: |
+        x=$(readlink -f "${{ runner.temp }}")
+        echo "dk-extract=${x}/devkit" >> $GITHUB_OUTPUT
+        echo "dk-path=${x}/devkit/devkitBase" >> $GITHUB_OUTPUT
+        echo "dk-zip=${x}/devkit/devkit.${{ env.zip }}" >> $GITHUB_OUTPUT
+        echo "plugin-ext=${{ env.ext }}" >> $GITHUB_OUTPUT
+
+    - name: Restore Devkit Cache
+      id: cache-devkit
+      uses: actions/cache/restore@v4
+      if: ${{ inputs.cache }}
+      with:
+        path: ${{ steps.dk-output.outputs.dk-zip }}
+        key: ${{ runner.os }}-Maya${{ inputs.maya }}-Update${{ inputs.update }}
+
+    - name: Download Devkit
+      if: ${{ steps.cache-devkit.outputs.cache-hit != 'true' || ! inputs.cache }}
+      shell: bash
+      run: |
+        mkdir -p "${{ steps.dk-output.outputs.dk-extract }}"
+        curl -o "${{ steps.dk-output.outputs.dk-zip }}" "${{ env.DEVKIT_URL }}"
+
+    - name: Save Devkit Cache
+      if: ${{ inputs.cache && steps.cache-devkit.outputs.cache-hit != 'true' }}
+      id: cache-devkit-save
+      uses: actions/cache/save@v4
+      with:
+        path: ${{ steps.dk-output.outputs.dk-zip }}
+        key: ${{ runner.os }}-Maya${{ inputs.maya }}-Update${{ inputs.update }}
+
+    - name: Unpack Devkit Windows
+      if: ${{ runner.os == 'Windows' }}
+      shell: bash
+      run: unzip "${{ steps.dk-output.outputs.dk-zip }}" -d "${{ steps.dk-output.outputs.dk-extract }}"
+
+    - name: Unpack Devkit Mac
+      if: ${{ runner.os == 'macOS' }}
+      shell: bash
+      run: hdiutil attach "${{ steps.dk-output.outputs.dk-zip }}" -mountroot "${{ steps.dk-output.outputs.dk-extract }}"
+
+    - name: Unpack Devkit Linux
+      if: ${{ runner.os == 'Linux' }}
+      shell: bash
+      run: tar xvzf "${{ steps.dk-output.outputs.dk-zip }}" -C "${{ steps.dk-output.outputs.dk-extract }}"
