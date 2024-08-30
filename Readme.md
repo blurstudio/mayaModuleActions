@@ -1,10 +1,12 @@
 # Maya Module Actions
 
-Two actions for streamlining the compiling and distribution of maya modules.
+Three actions for streamlining the compiling and distribution of maya modules.
 
 The first is `getMayaDevkit`, which will download and cache the maya devkit for all the years and updates you use in your matrix
 
-The second is `packageMayaModule`, which will grab all the compiled artifacts, and build a .mod file for distributing your plugins.
+The second is `mesonBuild`, which will build a meson project.
+
+The third is `packageMayaModule`, which will grab all the compiled artifacts, and build a .mod file for distributing your plugins.
 
 
 ## Get Maya Devkit
@@ -32,6 +34,26 @@ And, just for convenience, it also outputs the maya plugin extension for the cur
 ```
 ${{ steps.get-devkit.outputs.plugin-ext }}
 ```
+
+
+## Meson Build
+
+Basic Usage: 
+
+```
+- name: Build
+  uses: blurstudio/mayaModuleActions/mesonBuild@v1
+  with:
+    setup-args: >
+      -Dmaya:maya_version=${{ matrix.maya }}
+      -Dmaya:maya_devkit_base=${{ steps.get-devkit.outputs.devkit-path }}
+      --buildtype release
+      --backend ninja
+```
+
+This is just a conveneince wrapper for setting up and building with Meson (vs CMake). It's not maya specific, so you can re-use this elsewhere.
+And it automatically detects a Windows build, and sets up the visual studio environment for compiling.
+You could invoke meson directly, But dealing with the different shells required is a pain, and this action handles that part cleanly.
 
 
 ## Package Maya Module
@@ -81,6 +103,14 @@ on:
   pull_request:
     branches: [ master ]
 
+# A minimal test matrix 
+# matrix:
+#   maya: [2024]
+#   os: [macos-latest, ubuntu-latest, windows-latest]
+#   include: 
+#     - maya: 2024
+#       update: 2
+
 jobs:
   compile_plugin:
     strategy:
@@ -123,24 +153,19 @@ jobs:
           update: ${{ matrix.update }}
 
       - name: Build
-        uses: blurstudio/mayaModuleActions/mayaMesonBuild@v1
+        uses: blurstudio/mayaModuleActions/mesonBuild@v1
         with:
-          maya: ${{ matrix.maya }}
-          update: ${{ matrix.update }}
-          build-type: release
-          devkit-path: ${{ steps.get-devkit.outputs.devkit-path }}
-
-      - name: Repath Artifacts
-        shell: bash
-        run: |
-          mkdir -p artifacts/plug-ins
-          cp build/*.${{ steps.get-devkit.outputs.plugin-ext }} artifacts/plug-ins
+          setup-args: >
+            -Dmaya:maya_version=${{ matrix.maya }}
+            -Dmaya:maya_devkit_base=${{ steps.get-devkit.outputs.devkit-path }}
+            --buildtype release
+            --backend ninja
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ runner.os }}-${{ matrix.maya }}
-          path: artifacts/plug-ins/*.${{ steps.get-devkit.outputs.plugin-ext }}
+          name: ${{ runner.os }}-${{ matrix.maya }}-plugin
+          path: build/*.${{ steps.get-devkit.outputs.plugin-ext }}
           if-no-files-found: error
 
   upload_release:

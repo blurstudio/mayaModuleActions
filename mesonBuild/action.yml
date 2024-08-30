@@ -1,0 +1,64 @@
+name: Meson Build
+description: |
+  Set up and run a meson build command.
+  Running as a python subprocess is one way to handle the different requirements
+  to run meson on windows vs unix because of the Visual Studio environment setup.
+  This way I don't have to do a lot of operating system checking. Python's Subprocess
+  just kind of handles it
+
+inputs:
+  build-type:
+    description: 'The Meson build type from "release", "debugoptimized", "debug"'
+    default: "debugoptimized"
+  setup-args:
+    description: 'Any arguments passed to the meson setup command'
+    default: ''
+  build-path:
+    description: 'The path to setup and run the build in'
+    default: build
+  meson-version:
+    description: 'The version of meson to use, defaults to the latest version'
+    default: 1.5.1
+  ninja-version:
+    description: 'The version of meson to use, defaults to the latest version'
+    default: 1.11.1
+
+runs:
+  using: composite
+
+  steps:
+    - name : Install ninja
+      uses: seanmiddleditch/gha-setup-ninja@v5
+      with:
+        version: ${{ inputs.ninja-version }}
+
+    - name : Install Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+
+    - name : Install Meson
+      shell: bash
+      env:
+        MESON_VERSION: ${{ inputs.meson-version }}
+      run: pip install "meson==${MESON_VERSION}"
+
+    - name: Setup Meson python
+      env:
+        BUILD_PATH: ${{ inputs.build-path }}
+        SETUP_ARGS: ${{ inputs.setup-args }}
+      shell: python
+      run: |
+        import os
+        import shlex
+        import subprocess
+
+        cmd = ["meson", "setup", os.environ["BUILD_PATH"]]
+        cmd.extend(shlex.split(os.environ["SETUP_ARGS"]))
+        if os.name == "nt":
+            cmd.append("--vsenv")
+        subprocess.run(cmd)
+
+    - name: Setup Meson python
+      shell: bash
+      run: meson compile -C build

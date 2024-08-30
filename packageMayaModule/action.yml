@@ -25,37 +25,25 @@ runs:
     - name: Download artifacts
       uses: actions/download-artifact@v4
       with:
-        path: modules/${{ inputs.module-name }}
-
-    - name: Copy script data
-      shell: bash
-      env:
-        MOD_NAME: ${{ inputs.module-name }}
-        FOLDERS: ${{ inputs.folder-list }}
-      run: |
-        for FLD in $FOLDERS
-        do
-          if [ -d "./${FLD}" ]; then
-            cp -r ./${FLD} modules/${MOD_NAME}
-            echo "topline=true" >> $GITHUB_ENV
-          fi
-        done
+        path: artifacts/${{ inputs.module-name }}
 
     - name: Install Python
       uses: actions/setup-python@v5
       with:
         python-version: '3.10'  
 
-    - name: Build the Maya Modfile
+    - name: Build the Maya Module
       shell: bash
       env:
         OUTPATH: modules/${{ inputs.module-name }}.mod
+        ARTIFACTPATH: artifacts
         MODNAME: ${{ inputs.module-name }}
         MODVERSION: ${{ inputs.version }}
         MODPATH: modules/${{ inputs.module-name }}
+        MODFOLDERS: ${{ inputs.folder-list }}
         LIMITED: ${{ env.limited }}
-        TOP: ${{ env.topline }}
-      run: python "${{ github.action_path }}/buildmodfile.py" --github
+      run: |
+        python "${{ github.action_path }}/buildmodfile.py" --github
 
     - name: Zip Distribution
       shell: bash
