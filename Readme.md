@@ -1,15 +1,11 @@
 # Maya Module Actions
 
-Three actions for streamlining the compiling and distribution of maya modules.
-
-The first is `getMayaDevkit`, which will download and cache the maya devkit for all the years and updates you use in your matrix
-
-The second is `mesonBuild`, which will build a meson project.
-
-The third is `packageMayaModule`, which will grab all the compiled artifacts, and build a .mod file for distributing your plugins.
+Three actions for streamlining the compiling and distribution of maya modules: `getMayaDevkit`, `mesonBuild`, `packageMayaModule`
 
 
 ## Get Maya Devkit
+
+Downloads (and caches) the maya devkit for all the versions and updates you use in your matrix
 
 Basic Usage:
 
@@ -38,6 +34,8 @@ ${{ steps.get-devkit.outputs.plugin-ext }}
 
 ## Meson Build
 
+This is just a conveneince wrapper for setting up and building with Meson (vs CMake)
+
 Basic Usage: 
 
 ```
@@ -51,12 +49,14 @@ Basic Usage:
       --backend ninja
 ```
 
-This is just a conveneince wrapper for setting up and building with Meson (vs CMake). It's not maya specific, so you can re-use this elsewhere.
+This is not maya specific, so you can re-use this elsewhere if you like.
 And it automatically detects a Windows build, and sets up the visual studio environment for compiling.
 You could invoke meson directly, But dealing with the different shells required is a pain, and this action handles that part cleanly.
 
 
 ## Package Maya Module
+
+Grabs all the compiled artifacts, and builds a .mod file for distributing your plugins.
 
 Basic Usage:
 
@@ -69,28 +69,28 @@ Basic Usage:
     version: v1.2.3
 ```
 
-This will upload an artifact named TwistSpline-v1.2.3.zip.
+This would upload an artifact named TwistSpline-v1.2.3.zip.
 
 ### Requirements
 
-All of your plugin artifacts must already have a folder structure matching this pattern
+All of your plugin artifacts must be named like this
 
-    <operatingSystem>-<mayaYear>/plug-ins/<pluginName>.mll
+    <operatingSystem>-<mayaYear>-plugin/<pluginName>.mll
 
 
-Any Python modules that go with your plugin are either similarly structured
+Any Python modules that go with your plugin must be named like this
 
-    <operatingSystem>-<mayaYear>/pyModules/<pythonModule>.pyd
+    <operatingSystem>-<mayaYear>-pyModule/<pythonModule>.pyd
 
 OR
 
 The python modules may be compiled with the limited api, and can therefore be reused across all maya versions. If so, pass `py-limited-api: true`, and build the python modules without a year in their folder structure
 
-    <operatingSystem>/pyModules/<pythonModule>.pyd
+    <operatingSystem>-pyModule/<pythonModule>.pyd
 
-## Example
+## Full Example
 
-Here's an example of a full yaml that will build, package, and upload artifacts, and release them on a tag
+Here's an example of a full yaml that will build, package, and upload artifacts, and release them when properly tagged.
 
 ```
 name: build
