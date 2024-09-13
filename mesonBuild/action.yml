@@ -13,6 +13,12 @@ inputs:
   setup-args:
     description: 'Any arguments passed to the meson setup command'
     default: ''
+  compile-args:
+    description: 'Arguments to add to the "meson compile" command'
+    default: ''
+  install-args:
+    description: 'Arguments to add to the "meson install" command'
+    default: ''
   build-path:
     description: 'The path to setup and run the build in'
     default: build
@@ -61,4 +67,10 @@ runs:
 
     - name: Setup Meson python
       shell: bash
-      run: meson compile -C build
+      env:
+        BUILD_PATH: ${{ inputs.build-path }}
+        COMPILE_ARGS: ${{ inputs.compile-args }}
+        INSTALL_ARGS: ${{ inputs.install-args }}
+      run: |
+        meson compile -C ${BUILD_PATH} ${COMPILE_ARGS}
+        meson install -C ${BUILD_PATH} ${INSTALL_ARGS}
