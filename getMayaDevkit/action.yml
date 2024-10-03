@@ -17,6 +17,10 @@ inputs:
     description: "Whether to cache the devkit to this repo... This will take up most of the 10Gig limit"
     default: true
     type: boolean
+  extract-qt:
+    description: "Whether to extract the Qt headers from the devkit. (Not supported on Mac. PR's welcome)"
+    default: false
+    type: boolean
 
 outputs:
   devkit-extract:
@@ -34,6 +38,7 @@ outputs:
 
 runs:
   using: "composite"
+
   steps:
     - name: Get Variables - Windows
       if: ${{ runner.os == 'Windows' }}
@@ -114,12 +119,49 @@ runs:
       shell: bash
       run: unzip "${{ steps.dk-output.outputs.dk-zip }}" -d "${{ steps.dk-output.outputs.dk-extract }}"
 
-    - name: Unpack Devkit Mac
-      if: ${{ runner.os == 'macOS' }}
-      shell: bash
-      run: hdiutil attach "${{ steps.dk-output.outputs.dk-zip }}" -mountroot "${{ steps.dk-output.outputs.dk-extract }}"
-
     - name: Unpack Devkit Linux
       if: ${{ runner.os == 'Linux' }}
       shell: bash
       run: tar xvzf "${{ steps.dk-output.outputs.dk-zip }}" -C "${{ steps.dk-output.outputs.dk-extract }}"
+
+    - name: Unpack Devkit Mac
+      if: ${{ runner.os == 'macOS' }}
+      shell: bash
+      run: |
+        hdiutil attach "${{ steps.dk-output.outputs.dk-zip }}"
+        cp -r /Volumes/devkitBase ${{ steps.dk-output.outputs.dk-extract }}
+
+    - name: Unpack Qt Headers Windows
+      if: ${{ (runner.os == 'Windows') && inputs.extract-qt }}
+      shell: bash
+      run: |
+        if [ ! -e "${{ steps.dk-output.outputs.dk-extract }}/devkitBase/Qt.zip" ]; then
+          unzip "${{ steps.dk-output.outputs.dk-extract }}/devkitBase/include/qt*.zip" -d "${{ steps.dk-output.outputs.dk-extract }}/devkitBase/include"
+        else 
+          unzip "${{ steps.dk-output.outputs.dk-extract }}/devkitBase/Qt.zip" -d "${{ steps.dk-output.outputs.dk-extract }}/devkitBase"
+        fi 
+
+    - name: Unpack Qt Headers Linux
+      if: ${{ (runner.os == 'Linux') && inputs.extract-qt }}
+      shell: bash
+      run: |
+        if [ ! -e "${{ steps.dk-output.outputs.dk-extract }}/devkitBase/Qt.tgz" ]; then
+          tar xvzf ${{ steps.dk-output.outputs.dk-extract }}/devkitBase/include/qt*.tar.gz -C ${{ steps.dk-output.outputs.dk-extract }}/devkitBase/include
+        else 
+          tar xvzf ${{ steps.dk-output.outputs.dk-extract }}/devkitBase/Qt.tgz -C ${{ steps.dk-output.outputs.dk-extract }}/devkitBase
+        fi 
+
+    - name: Unpack Qt Headers Mac
+      if: ${{ (runner.os == 'macOS') && inputs.extract-qt }}
+      shell: bash
+      run: |
+        if [ ! -e "${{ steps.dk-output.outputs.dk-extract }}/devkitBase/Qt.tgz" ]; then
+          tar xvzf ${{ steps.dk-output.outputs.dk-extract }}/devkitBase/include/qt*.tar.gz -C ${{ steps.dk-output.outputs.dk-extract }}/devkitBase/include
+        else 
+          tar xvzf ${{ steps.dk-output.outputs.dk-extract }}/devkitBase/Qt.tgz -C ${{ steps.dk-output.outputs.dk-extract }}/devkitBase
+        fi 
+
+
+
+
+
