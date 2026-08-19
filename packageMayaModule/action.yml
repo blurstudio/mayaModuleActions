@@ -23,14 +23,14 @@ runs:
   using: "composite"
   steps:
     - name: Download artifacts
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v8
       with:
         path: artifacts/${{ inputs.module-name }}
 
     - name: Install Python
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v7
       with:
-        python-version: '3.10'  
+        python-version: '3.12'
 
     - name: Build the Maya Module
       shell: bash
@@ -53,7 +53,7 @@ runs:
       run: zip -r ${MOD_NAME}-${REL_VER}.zip modules/
 
     - name: Upload Artifacts
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: ${{ inputs.module-name }}-module
         path: ${{ inputs.module-name }}-${{ inputs.version }}.zip

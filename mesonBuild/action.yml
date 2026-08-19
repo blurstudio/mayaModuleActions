@@ -33,15 +33,10 @@ runs:
   using: composite
 
   steps:
-    - name : Install ninja
-      uses: seanmiddleditch/gha-setup-ninja@v5
-      with:
-        version: ${{ inputs.ninja-version }}
-
     - name : Install Python
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v7
       with:
-        python-version: '3.10'
+        python-version: '3.12'
 
     - name : Install Meson
       shell: bash

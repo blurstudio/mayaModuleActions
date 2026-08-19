@@ -10,7 +10,15 @@ PLAT_DICT = {
 }
 
 
-def main(outpath, artifactpath, modname, modver, modpath, modfolders, py_limited_api):
+def main(
+    outpath: str | Path,
+    artifactpath: str | Path,
+    modname: str,
+    modver: str | float,
+    modpath: str | Path,
+    modfolders: str,
+    py_limited_api: bool,
+):
     outpath = Path(outpath).absolute()
     basepath = outpath.parent
     modpath = Path(modpath).absolute()
@@ -27,27 +35,27 @@ def main(outpath, artifactpath, modname, modver, modpath, modfolders, py_limited
         python_regex = f"{plat_regex}-pyModule"
 
     include_top = False
-    modfolders = [i for i in modfolders.split() if i]
-    for mf in modfolders:
+    modfolders_sp = [i for i in modfolders.split() if i]
+    for mf in modfolders_sp:
         mfp = Path.cwd() / mf
         if not mfp.is_dir():
             continue
         include_top = True
         shutil.copytree(mfp, modpath / mf, dirs_exist_ok=True)
 
-    plugPaths = sorted(list(artifactpath.glob("**/*-plugin")))
-    pyPaths = sorted(list(artifactpath.glob("**/*-pyModule")))
+    plugPaths = sorted(artifactpath.glob("**/*-plugin"))
+    pyPaths = sorted(artifactpath.glob("**/*-pyModule"))
 
     pydict = {}
     for pp in pyPaths:
         match = re.search(python_regex, str(pp))
         if not match:
             continue
-        plat = PLAT_DICT[match['platform']]
+        plat = PLAT_DICT[match["platform"]]
         if py_limited_api:
             key = plat
         else:
-            key = f'{plat}-{match["year"]}'
+            key = f"{plat}-{match['year']}"
 
         rel = Path(key) / "pyModules"
         tar = modpath / rel

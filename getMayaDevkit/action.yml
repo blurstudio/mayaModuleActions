@@ -78,9 +78,6 @@ runs:
       shell: bash
       run: sudo apt install libglu1-mesa-dev
 
-    - name : Install ninja
-      uses: seanmiddleditch/gha-setup-ninja@v5
-
     - name: Set output
       id: dk-output
       shell: bash
@@ -93,7 +90,7 @@ runs:
 
     - name: Restore Devkit Cache
       id: cache-devkit
-      uses: actions/cache/restore@v4
+      uses: actions/cache/restore@v6
       if: ${{ inputs.cache }}
       with:
         path: ${{ steps.dk-output.outputs.dk-zip }}
@@ -109,7 +106,7 @@ runs:
     - name: Save Devkit Cache
       if: ${{ inputs.cache && steps.cache-devkit.outputs.cache-hit != 'true' }}
       id: cache-devkit-save
-      uses: actions/cache/save@v4
+      uses: actions/cache/save@v6
       with:
         path: ${{ steps.dk-output.outputs.dk-zip }}
         key: ${{ runner.os }}-Maya${{ inputs.maya }}-Update${{ inputs.update }}
