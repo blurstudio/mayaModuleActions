@@ -106,5 +106,5 @@ if __name__ == "__main__":
         os.getenv("MODVERSION", "1.0.0"),
         os.environ["MODPATH"],
         os.environ["MODFOLDERS"],
-        bool(os.getenv("LIMITED", False)),
+        os.getenv("LIMITED", "false").strip().lower() == "true",
     )

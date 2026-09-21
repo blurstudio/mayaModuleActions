@@ -41,7 +41,7 @@ runs:
         MODVERSION: ${{ inputs.version }}
         MODPATH: modules/${{ inputs.module-name }}
         MODFOLDERS: ${{ inputs.folder-list }}
-        LIMITED: ${{ env.limited }}
+        LIMITED: ${{ inputs.py-limited-api }}
       run: |
         python "${{ github.action_path }}/buildmodfile.py" --github
 
